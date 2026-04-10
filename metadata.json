@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Vision Chat",
+  "description": "A full-stack application with image upload and chat capabilities.",
+  "requestFramePermissions": ["microphone"]
+}
