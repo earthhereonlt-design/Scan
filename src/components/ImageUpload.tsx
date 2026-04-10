@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X, Image as ImageIcon, Camera, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface ImageUploadProps {
@@ -12,7 +12,14 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -49,6 +56,65 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
     reader.readAsDataURL(selectedFile);
   };
 
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' },
+        audio: false 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setIsCameraOpen(true);
+    } catch (err) {
+      console.error('Camera error:', err);
+      setCameraError('Could not access camera. Please check permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setPreview(dataUrl);
+        
+        // Convert dataUrl to File object
+        fetch(dataUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const capturedFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setFile(capturedFile);
+          });
+        
+        stopCamera();
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
   const clearSelection = () => {
     setFile(null);
     setPreview(null);
@@ -62,7 +128,44 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <AnimatePresence mode="wait">
-        {!preview ? (
+        {isCameraOpen ? (
+          <motion.div
+            key="camera-zone"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass-panel p-6 relative overflow-hidden flex flex-col items-center"
+          >
+            <button
+              onClick={stopCamera}
+              className="absolute top-6 right-6 z-10 p-2 bg-white/90 hover:bg-white text-slate-800 rounded-full backdrop-blur-sm transition-colors shadow-sm border border-white/50"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black mb-6 border border-white/20 shadow-2xl">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={takePhoto}
+                className="w-16 h-16 bg-white rounded-full border-4 border-slate-800 flex items-center justify-center shadow-xl"
+              >
+                <div className="w-12 h-12 bg-slate-800 rounded-full" />
+              </motion.button>
+              <p className="text-sm font-bold text-slate-800">Capture Photo</p>
+            </div>
+          </motion.div>
+        ) : !preview ? (
             <motion.div
               key="upload-zone"
               initial={{ opacity: 0, y: 20 }}
@@ -78,7 +181,11 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).tagName !== 'BUTTON') {
+                  fileInputRef.current?.click();
+                }
+              }}
             >
             <input
               type="file"
@@ -87,22 +194,59 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
               accept="image/*"
               className="hidden"
             />
+            <input
+              type="file"
+              ref={cameraInputRef}
+              onChange={handleFileSelect}
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+            />
             <div className="flex flex-col items-center gap-5">
               <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-white/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <UploadCloud className="w-7 h-7 text-slate-800" strokeWidth={1.5} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Upload an image</h3>
-                <p className="text-sm text-slate-500 mt-1.5">Drag and drop or click to browse</p>
+                <p className="text-sm text-slate-500 mt-1.5">Drag and drop or choose an option below</p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-4 px-6 py-2.5 bg-slate-800 text-white text-sm font-medium rounded-xl shadow-md hover:bg-slate-700 transition-colors"
-              >
-                Select File
-              </motion.button>
+              
+              {cameraError && (
+                <p className="text-xs text-red-500 font-medium">{cameraError}</p>
+              )}
+
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="px-6 py-2.5 bg-slate-800 text-white text-sm font-medium rounded-xl shadow-md hover:bg-slate-700 transition-colors flex items-center gap-2"
+                >
+                  <ImageIcon size={16} />
+                  Select File
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Try native camera first for better mobile support
+                    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                      cameraInputRef.current?.click();
+                    } else {
+                      startCamera();
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-white text-slate-800 border border-slate-200 text-sm font-medium rounded-xl shadow-sm hover:bg-slate-50 transition-colors flex items-center gap-2"
+                >
+                  <Camera size={16} />
+                  Take Photo
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         ) : (
@@ -149,26 +293,41 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
                   <ImageIcon className="w-5 h-5 text-slate-800" strokeWidth={1.5} />
                 </div>
                 <div className="truncate">
-                  <p className="text-sm font-bold text-slate-800 truncate">{file?.name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{(file!.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-sm font-bold text-slate-800 truncate">{file?.name || 'Captured Photo'}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {file ? (file.size / 1024 / 1024).toFixed(2) : '0.00'} MB
+                  </p>
                 </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze Image'
-                )}
-              </motion.button>
+              
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={clearSelection}
+                  disabled={isLoading}
+                  className="p-2.5 bg-white text-slate-800 border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw size={18} />
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze Image'
+                  )}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}

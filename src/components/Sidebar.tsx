@@ -53,8 +53,9 @@ export function Sidebar({ isOpen, onClose, onNewChat, currentView, setView, hist
           <X className="w-6 h-6" />
         </button>
 
-        <div className="mb-10 font-bold text-2xl px-4 italic text-slate-800 tracking-tighter">
-          //.
+        <div className="mb-10 font-bold text-2xl px-4 italic text-slate-800 tracking-tighter flex items-center gap-2">
+          <Zap className="w-6 h-6 text-orange-600" fill="currentColor" />
+          <span>Vision AI</span>
         </div>
 
         <motion.button 

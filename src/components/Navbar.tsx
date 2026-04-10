@@ -1,4 +1,4 @@
-import { Menu, Search } from 'lucide-react';
+import { Menu, Search, Zap } from 'lucide-react';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -15,7 +15,10 @@ export function Navbar({ onMenuClick, userName }: NavbarProps) {
         >
           <Menu className="w-5 h-5" strokeWidth={1.5} />
         </button>
-        <div className="md:hidden font-bold text-lg md:text-xl italic text-slate-800 tracking-tighter">//.</div>
+        <div className="md:hidden font-bold text-lg md:text-xl italic text-slate-800 tracking-tighter flex items-center gap-1">
+          <Zap className="w-5 h-5 text-orange-600" fill="currentColor" />
+          <span>V.AI</span>
+        </div>
       </div>
 
       <div className="flex-1 max-w-2xl px-4 md:px-8 hidden md:block">
@@ -23,7 +26,7 @@ export function Navbar({ onMenuClick, userName }: NavbarProps) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={1.5} />
           <input 
             type="text" 
-            placeholder="Search..." 
+            placeholder="Ask Vision AI anything..." 
             className="w-full bg-white/60 backdrop-blur-md border-none rounded-2xl py-3 pl-12 pr-4 focus:ring-2 ring-orange-200 transition-all outline-none text-sm text-slate-800 placeholder:text-slate-400 shadow-sm"
           />
         </div>
