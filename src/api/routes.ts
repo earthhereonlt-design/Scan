@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { uploadImage } from './controllers/uploadController.js';
-import { handleChat } from './controllers/chatController.js';
+import { uploadImage } from './controllers/uploadController';
+import { handleChat } from './controllers/chatController';
 import multer from 'multer';
 
 const router = Router();
