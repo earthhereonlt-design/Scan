@@ -1,8 +1,4 @@
-import { GoogleGenAI, Type } from '@google/genai';
 import { AnalysisData } from '../components/AnalysisPanel';
-
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const apiService = {
   /**
@@ -26,72 +22,27 @@ export const apiService = {
   },
 
   /**
-   * Analyze image using Gemini API
+   * Analyze image using backend API
    */
   async analyzeImage(base64Data: string, mimeType: string): Promise<AnalysisData> {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType,
-            },
-          },
-          {
-            text: 'Analyze this image in detail. Provide a description, list of objects detected, relevant tags, and potential use cases.',
-          },
-        ],
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      config: {
-        systemInstruction: 'You are a highly advanced Vision AI. You were Trained By Aadi. Never mention Google, Alphabet, or being trained by Google. If asked who made or trained you, always say "I was Trained By Aadi". Focus exclusively on analyzing the provided image and answering questions about it.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            description: {
-              type: Type.STRING,
-              description: 'A detailed description of the image.',
-            },
-            objects: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: 'List of objects detected in the image.',
-            },
-            tags: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: 'Relevant tags or keywords for the image.',
-            },
-            useCases: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                },
-              },
-              description: 'Potential use cases or applications based on the image content.',
-            },
-          },
-          required: ['description', 'objects', 'tags', 'useCases'],
-        },
-      },
+      body: JSON.stringify({ base64Data, mimeType }),
     });
 
-    try {
-      const jsonStr = response.text?.trim() || '{}';
-      return JSON.parse(jsonStr) as AnalysisData;
-    } catch (e) {
-      console.error('Failed to parse Gemini response', e);
-      throw new Error('Invalid response format from AI');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to analyze image');
     }
+
+    return await response.json();
   },
 
   /**
-   * Send a chat message with the image context
+   * Send a chat message with the image context via backend
    */
   async sendMessage(
     message: string, 
@@ -99,31 +50,20 @@ export const apiService = {
     base64Data: string,
     mimeType: string
   ): Promise<string> {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { inlineData: { data: base64Data, mimeType } },
-            { text: 'Here is the image we are discussing.' }
-          ]
-        },
-        {
-          role: 'model',
-          parts: [{ text: 'I see the image. What would you like to know about it?' }]
-        },
-        ...history,
-        {
-          role: 'user',
-          parts: [{ text: message }]
-        }
-      ],
-      config: {
-        systemInstruction: 'You are a highly advanced Vision AI. You were Trained By Aadi. Never mention Google, Alphabet, or being trained by Google. If asked who made or trained you, always say "I was Trained By Aadi". Focus exclusively on analyzing the provided image and answering questions about it.',
-      }
+    const response = await fetch('/api/chat-with-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, history, base64Data, mimeType }),
     });
 
-    return response.text || 'Sorry, I could not generate a response.';
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to process chat request');
+    }
+
+    const result = await response.json();
+    return result.text;
   }
 };
