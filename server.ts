@@ -4,9 +4,13 @@ import path from 'path';
 import apiRoutes from './src/api/routes.js';
 
 async function startServer() {
-  console.log('Initializing server...');
-  const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  try {
+    console.log('Starting Vision AI Server...');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Port:', process.env.PORT || 3000);
+    
+    const app = express();
+    const PORT = Number(process.env.PORT) || 3000;
 
   // Middleware to parse JSON bodies
   app.use(express.json());
@@ -29,9 +33,16 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('CRITICAL: Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('Unhandled error in startServer:', err);
+  process.exit(1);
+});
