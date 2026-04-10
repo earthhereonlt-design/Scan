@@ -1,5 +1,5 @@
 {
-  "name": "Vision AI",
+  "name": "AI Studio App",
   "description": "Advanced image analysis and AI chat powered by Gemini.",
   "requestFramePermissions": ["microphone", "camera"]
 }

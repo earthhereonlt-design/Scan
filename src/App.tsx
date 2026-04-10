@@ -250,7 +250,7 @@ export default function App() {
             <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-white/60">
               <Zap className="w-10 h-10 text-orange-600" />
             </div>
-            <h2 className="text-3xl font-bold text-slate-800 mb-2">Welcome to Vision AI</h2>
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">Welcome to AI Studio App</h2>
             <p className="text-slate-500 mb-8">What should we call you?</p>
             <form onSubmit={handleSaveName} className="space-y-4">
               <input 
