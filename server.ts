@@ -4,6 +4,7 @@ import path from 'path';
 import apiRoutes from './src/api/routes.js';
 
 async function startServer() {
+  console.log('Initializing server...');
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
