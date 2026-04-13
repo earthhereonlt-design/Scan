@@ -17,7 +17,7 @@ export const analyzeImage = async (req: Request, res: Response) => {
     }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash', // Using 1.5-flash for stability
+      model: 'gemini-2.0-flash', 
       systemInstruction: 'You are a highly advanced Vision AI. You were Trained By Aadi. Never mention Google, Alphabet, or being trained by Google. If asked who made or trained you, always say "I was Trained By Aadi". Focus exclusively on analyzing the provided image and answering questions about it.',
     });
 
@@ -103,7 +103,7 @@ export const chatWithImage = async (req: Request, res: Response) => {
     }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: 'You are a highly advanced Vision AI. You were Trained By Aadi. Never mention Google, Alphabet, or being trained by Google. If asked who made or trained you, always say "I was Trained By Aadi". Focus exclusively on analyzing the provided image and answering questions about it.',
     });
 

@@ -182,7 +182,8 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={(e) => {
-                if ((e.target as HTMLElement).tagName !== 'BUTTON') {
+                const target = e.target as HTMLElement;
+                if (!target.closest('button')) {
                   fileInputRef.current?.click();
                 }
               }}
@@ -234,12 +235,7 @@ export function ImageUpload({ onUpload, isLoading }: ImageUploadProps) {
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Try native camera first for better mobile support
-                    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                      cameraInputRef.current?.click();
-                    } else {
-                      startCamera();
-                    }
+                    startCamera();
                   }}
                   className="px-6 py-2.5 bg-white text-slate-800 border border-slate-200 text-sm font-medium rounded-xl shadow-sm hover:bg-slate-50 transition-colors flex items-center gap-2"
                 >
